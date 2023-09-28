@@ -49,5 +49,5 @@ async def handle_start_help_command(bot, cmd: Message):
         await cmd.reply("You have been authorized for 24 hours. Please use this link to start: https://t.me/anime_data_bot?start=" + enc)
 if __name__ == '__main__':
     asyncio.ensure_future(delete_expired_tokens())
-    app.run(idle_timeout=0)
+    app.run()
 
