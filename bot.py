@@ -28,7 +28,7 @@ def shorten_url(url):
     response = requests.get(shortener_url)
     return response.text.strip()
 
-app = pyrogram.Client(
+app = Client(
     'my_bot',
     api_id=10247139,
     api_hash='96b46175824223a33737657ab943fd6a',
