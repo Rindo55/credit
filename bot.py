@@ -24,8 +24,6 @@ async def is_user_authorized(user_id):
     if user_token:
         expiration_time = user_token["expiration_time"]
         return expiration_time > asyncio.get_event_loop().time()
-        if expiration_time > asyncio.get_event_loop().time():
-            await db.user_tokens.delete_one({"user_id": user_id})
     return False
 
 @app.on_message(filters.private & (filters.command("start", prefixes="/") | filters.command("help", prefixes="/")))
@@ -36,11 +34,12 @@ async def handle_start_help_command(bot, cmd: Message):
         
     else:
         # Generate a new token and set its expiration time to 24 hours from now
-        expiration_time = asyncio.get_event_loop().time() + 60
-
+        expiration_time = asyncio.get_event_loop().time() + 30
         # Store the token in MongoDB
         enc = secrets.token_hex(nbytes=16)
         db.user_tokens.insert_one({"user_id": user_id, "token": enc, "expiration_time": expiration_time})
         await cmd.reply("You have been authorized for 24 hours. Please use this link to start: https://t.me/anime_data_bot?start=" + enc)
+        await expiration_time > asyncio.get_event_loop().time():
+        await db.user_tokens.delete_one({"user_id": user_id, "token": enc, "expiration_time": expiration_time})
 if __name__ == '__main__':
     app.run()
