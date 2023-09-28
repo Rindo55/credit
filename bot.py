@@ -36,7 +36,7 @@ app = Client(
 )
 
 # Command handler for /start command
-@app.on_message(pyrogram.filters.command('start'))
+@app.on_message(filters.command('start'))
 def start_command(client, message):
     user_id = message.from_user.id
 
@@ -58,7 +58,7 @@ def start_command(client, message):
     db.user_data.replace_one({'user_id': user_id}, user_data, upsert=True)
 
 # Command handler for /earncredit command
-@app.on_message(pyrogram.filters.command('earncredit'))
+@app.on_message(filters.command('earncredit'))
 def earn_credit_command(client, message):
     user_id = message.from_user.id
 
