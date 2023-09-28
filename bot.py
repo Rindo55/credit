@@ -75,7 +75,7 @@ def earn_credit_command(client, message):
         enc = secrets.token_hex(nbytes=16)
         sample_url = f"https://t.me/anime_data_bot?start={enc}"
         shortened_url = shorten_url(sample_url)
-
+        message.reply("shortened_url")
         if enc in update.text:
             user_data['credits'] += 1
             user_data['last_earned'] = datetime.datetime.now()
