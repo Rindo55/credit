@@ -15,7 +15,7 @@ app = Client(
 )
 
 # Connect to MongoDB
-client = MongoClient('mongodb://localhost:27017/')
+client = MongoClient('mongodb+srv://anime:2004@cluster0.ghzkqob.mongodb.net/?retryWrites=true&w=majority')
 db = client['user_tokens']
 
 async def is_user_authorized(user_id):
