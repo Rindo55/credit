@@ -17,7 +17,7 @@ app = Client(
 # Connect to MongoDB
 client = MongoClient('mongodb+srv://anime:2004@cluster0.ghzkqob.mongodb.net/?retryWrites=true&w=majority')
 db = client['user_tokens']
-
+db.user_tokens.create_index([("user_id", 1)], unique=True)
 async def is_user_authorized(user_id, usr_txt):
     # Check if the user_id exists in the user_tokens collection
     user_token = db.user_tokens.find_one({"user_id": user_id, "token": usr_txt})
