@@ -65,7 +65,7 @@ async def start_command(client, message):
 
 # Command handler for /earncredit command
 @app.on_message(filters.command('earncredit'))
-def earn_credit_command(client, message):
+async def earn_credit_command(client, message):
     user_id = message.from_user.id
 
     user_data = db.user_data.find_one({'user_id': user_id})
@@ -75,7 +75,7 @@ def earn_credit_command(client, message):
     # Check if the user has already earned a credit today
     if 'last_earned' in user_data and \
             user_data['last_earned'] + datetime.timedelta(minutes=2) > datetime.datetime.now():
-        message.reply("You have already earned a credit today. Try again tomorrow!")
+        await message.reply("You have already earned a credit today. Try again tomorrow!")
 
     else:
         # Try to shorten a sample URL (replace with your own)
@@ -84,7 +84,7 @@ def earn_credit_command(client, message):
         credit = await animedb.insert_one({'token': enc})
         sample_url = f"https://t.me/anime_data_bot?start=animxt_{enc}"
         shortened_url = shorten_url(sample_url)
-        message.reply(shortened_url)
+        await message.reply(shortened_url)
 
 if __name__ == '__main__':
     app.run()
