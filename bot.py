@@ -39,23 +39,27 @@ app = Client(
 @app.on_message(filters.command('start'))
 def start_command(client, message):
     user_id = message.from_user.id
-
+    usr_cmd = message.text.split("_", 1)[-1]
     user_data = db.user_data.find_one({'user_id': user_id})
-    if not user_data:
-        user_data = {'user_id': user_id, 'credits': 0, 'trial_expiry': None}
+    if usr_cmd == "/start":
+        if not user_data:
+            user_data = {'user_id': user_id, 'credits': 0, 'trial_expiry': None}
+            if user_data['trial_expiry'] is None:
+                user_data['trial_expiry'] = datetime.datetime.now() + datetime.timedelta(minutes=2)
+                message.reply("Welcome! You have a 3-day free trial. Enjoy!")
+            elif user_data['trial_expiry'] > datetime.datetime.now():
+                message.reply("You are still in your trial period. Enjoy!")
+            elif has_enough_credits(user_id):
+                message.reply("You have enough credits to use the bot.")
+                db.user_data.replace_one({'user_id': user_id}, user_data, upsert=True)
+    elif usr_cmd.split("_")[-1]==enc:
+        user_data['credits'] += 1
+        user_data['last_earned'] = datetime.datetime.now()
+        message.reply(f"Congratulations! You earned 1 credit. You can now use the bot for 24 hours.")
+        db.user_data.replace_one({'user_id': user_id}, user_data, upsert=True)
 
-    # Check if the user is in the trial period
-    if user_data['trial_expiry'] is None:
-        user_data['trial_expiry'] = datetime.datetime.now() + datetime.timedelta(minutes=2)
-        message.reply("Welcome! You have a 3-day free trial. Enjoy!")
-
-    elif user_data['trial_expiry'] > datetime.datetime.now():
-        message.reply("You are still in your trial period. Enjoy!")
-
-    elif has_enough_credits(user_id):
-        message.reply("You have enough credits to use the bot.")
-
-    db.user_data.replace_one({'user_id': user_id}, user_data, upsert=True)
+    else:
+        message.reply("Failed to earn a credit. Please try again later.")
 
 # Command handler for /earncredit command
 @app.on_message(filters.command('earncredit'))
@@ -74,17 +78,9 @@ def earn_credit_command(client, message):
     else:
         # Try to shorten a sample URL (replace with your own)
         enc = secrets.token_hex(nbytes=16)
-        sample_url = f"https://t.me/anime_data_bot?start={enc}"
+        sample_url = f"https://t.me/anime_data_bot?start=animxt_{enc}"
         shortened_url = shorten_url(sample_url)
         message.reply(shortened_url)
-        if enc in message.text:
-            user_data['credits'] += 1
-            user_data['last_earned'] = datetime.datetime.now()
-            message.reply(f"Congratulations! You earned 1 credit. You can now use the bot for 24 hours.")
-        else:
-            message.reply("Failed to earn a credit. Please try again later.")
-
-    db.user_data.replace_one({'user_id': user_id}, user_data, upsert=True)
 
 if __name__ == '__main__':
     app.run()
