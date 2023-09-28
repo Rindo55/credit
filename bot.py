@@ -20,8 +20,8 @@ db = client['user_tokens']
 
 async def is_user_authorized(user_id, usr_txt):
     # Check if the user_id exists in the user_tokens collection
-    user_token = db.user_tokens.find_one({"token": token})
-    if usr_txt in user_token:
+    user_token = db.user_tokens.find_one({"user_id": user_id, "token": usr_txt}))
+    if user_token:
         expiration_time = user_token["expiration_time"]
         return expiration_time > asyncio.get_event_loop().time()
     return False
