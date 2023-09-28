@@ -8,7 +8,7 @@ app = Client(
     'my_bot',
     api_id=10247139,
     api_hash='96b46175824223a33737657ab943fd6a',
-    bot_token='YOUR_BOT_TOKEN_HERE'
+    bot_token='5786017840:AAEsbeA-1QUdr_0Stp3Bg8V0ov0kxl1A_28'
 )
 
 # Connect to MongoDB
