@@ -7,13 +7,14 @@ import time
 import pymongo
 
 
+
 # URL shortener API endpoint
 SHORTENER_API = 'https://tnshort.net/api'
 
 # Connect to MongoDB (Make sure you have MongoDB installed and running)
 client = pymongo.MongoClient('mongodb+srv://anime:2004@cluster0.ghzkqob.mongodb.net/?retryWrites=true&w=majority')
 db = client['bot_database']
-
+animedb = db.credit
 # Function to check if the user has enough credits to use the bot
 def has_enough_credits(user_id):
     user_data = db.user_data.find_one({'user_id': user_id})
@@ -52,11 +53,12 @@ def start_command(client, message):
             elif has_enough_credits(user_id):
                 message.reply("You have enough credits to use the bot.")
                 db.user_data.replace_one({'user_id': user_id}, user_data, upsert=True)
-    elif usr_cmd.split("_")[-1]==enc:
+    cre = animedb.find_one({'token': enc})
+    elif usr_cmd.split("_")[-1] in cre:
         user_data['credits'] += 1
         user_data['last_earned'] = datetime.datetime.now()
-        message.reply(f"Congratulations! You earned 1 credit. You can now use the bot for 24 hours.")
-        db.user_data.replace_one({'user_id': user_id}, user_data, upsert=True)
+        await message.reply(f"Congratulations! You earned 1 credit. You can now use the bot for 24 hours.")
+        await animedb.delete_one({'token': enc})
 
     else:
         message.reply("Failed to earn a credit. Please try again later.")
@@ -78,6 +80,8 @@ def earn_credit_command(client, message):
     else:
         # Try to shorten a sample URL (replace with your own)
         enc = secrets.token_hex(nbytes=16)
+        user_data = db.credit.find_one({'token': enc})
+        credit = await animedb.insert_one({'token': enc})
         sample_url = f"https://t.me/anime_data_bot?start=animxt_{enc}"
         shortened_url = shorten_url(sample_url)
         message.reply(shortened_url)
