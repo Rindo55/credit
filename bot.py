@@ -1,80 +1,89 @@
-import asyncio
-import os
-import re
-import time
-import aiohttp
+import pyrogram
+import datetime
+import secrets
 import requests
-import aiofiles
-from base64 import standard_b64encode, standard_b64decode
-from pyrogram import Client, filters, idle
-from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
-import logging
-logging.basicConfig(format='[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s',
-                    level=logging.WARNING)
+import time
+import pymongo
 
 
-from config import Config
+# URL shortener API endpoint
+SHORTENER_API = 'https://tnshort.net/api'
 
-logging.getLogger("pyrogram").setLevel(logging.WARNING)
-app = Client(
-            "Bot",
-            bot_token = Config.BOT_TOKEN,
-            api_id = Config.API_ID,
-            api_hash = Config.API_HASH)
+# Connect to MongoDB (Make sure you have MongoDB installed and running)
+client = pymongo.MongoClient('mongodb+srv://anime:2004@cluster0.ghzkqob.mongodb.net/?retryWrites=true&w=majority')
+db = client['bot_database']
 
-def b64_to_str(b64: str) -> str:
-    bytes_b64 = b64.encode('ascii')
-    bytes_str = standard_b64decode(bytes_b64)
-    __str = bytes_str.decode('ascii')
-    return __str
-def str_to_b64(__str: str) -> str:
+# Function to check if the user has enough credits to use the bot
+def has_enough_credits(user_id):
+    user_data = db.user_data.find_one({'user_id': user_id})
+    if not user_data:
+        return False
+    return user_data.get('credits', 0) > 0
 
-    str_bytes = __str.encode('ascii')
+# Function to shorten a URL using the URL shortener API
+def shorten_url(url):
+    api_key = 'fea911843f6e7bec739708f3e562b56184342089'
+    shortener_url = f'{SHORTENER_API}?api={api_key}&url={url}&format=text'
+    response = requests.get(shortener_url)
+    return response.text.strip()
 
-    bytes_b64 = standard_b64encode(str_bytes)
+app = pyrogram.Client(
+    'my_bot',
+    api_id=10247139,
+    api_hash='96b46175824223a33737657ab943fd6a',
+    bot_token='5786017840:AAEsbeA-1QUdr_0Stp3Bg8V0ov0kxl1A_28'
+)
 
-    b64 = bytes_b64.decode('ascii')
+# Command handler for /start command
+@app.on_message(pyrogram.filters.command('start'))
+def start_command(client, message):
+    user_id = message.from_user.id
 
-    return b64
+    user_data = db.user_data.find_one({'user_id': user_id})
+    if not user_data:
+        user_data = {'user_id': user_id, 'credits': 0, 'trial_expiry': None}
 
-@app.on_message(filters.command("start") & filters.private)
-async def start(bot, cmd: Message):
-    usr_cmd = cmd.text.split("_", 1)[-1]
-    kay_id = -1001642923224
-    if usr_cmd == "/start":
-       await cmd.reply_text("Bot seems online! ⚡️")
+    # Check if the user is in the trial period
+    if user_data['trial_expiry'] is None:
+        user_data['trial_expiry'] = datetime.datetime.now() + datetime.timedelta(minutes=2)
+        message.reply("Welcome! You have a 3-day free trial. Enjoy!")
+
+    elif user_data['trial_expiry'] > datetime.datetime.now():
+        message.reply("You are still in your trial period. Enjoy!")
+
+    elif has_enough_credits(user_id):
+        message.reply("You have enough credits to use the bot.")
+
+    db.user_data.replace_one({'user_id': user_id}, user_data, upsert=True)
+
+# Command handler for /earncredit command
+@app.on_message(pyrogram.filters.command('earncredit'))
+def earn_credit_command(client, message):
+    user_id = message.from_user.id
+
+    user_data = db.user_data.find_one({'user_id': user_id})
+    if not user_data:
+        user_data = {'user_id': user_id, 'credits': 0, 'trial_expiry': None}
+
+    # Check if the user has already earned a credit today
+    if 'last_earned' in user_data and \
+            user_data['last_earned'] + datetime.timedelta(minutes=2) > datetime.datetime.now():
+        message.reply("You have already earned a credit today. Try again tomorrow!")
+
     else:
-        try:
-            try:
-                file_id = int(b64_to_str(usr_cmd).split("_")[-1])
-            except (Error, UnicodeDecodeError):
-                file_id = int(usr_cmd.split("_")[-1])
-            GetMessage = await app.get_messages(kay_id, message_ids=file_id)
-            message_ids = GetMessage.message_id
-            await app.copy_message(chat_id=cmd.from_user.id, from_chat_id=kay_id, message_id=message_ids)
-        except Exception as err:
-            await cmd.reply_text(f"Something went wrong!\n\n**Error:** `XXXXXXX`")
-            
-            
-@app.on_message(filters.command("link") & filters.private)
+        # Try to shorten a sample URL (replace with your own)
+        enc = secrets.token_hex(nbytes=16)
+        sample_url = f"https://t.me/anime_data_bot?start={enc}"
+        shortened_url = shorten_url(sample_url)
 
-async def link(bot, cmd: Message):
-    usr_cmd = cmd.text.split("_", 1)[-1]
-    if usr_cmd == "/link":
+        if enc in update.text:
+            user_data['credits'] += 1
+            user_data['last_earned'] = datetime.datetime.now()
+            message.reply(f"Congratulations! You earned 1 credit. You can now use the bot for 24 hours.")
+        else:
+            message.reply("Failed to earn a credit. Please try again later.")
 
-       await cmd.reply_text("Fuck off!")
+    db.user_data.replace_one({'user_id': user_id}, user_data, upsert=True)
 
-    else: 
-        try:
-
-       
-            fuk_cmd = cmd.text.replace("/link https://t.me/c/1642923224/", "")
-            filex_id = str_to_b64(fuk_cmd)
-            sendx = await app.send_message(chat_id=cmd.from_user.id, text="https://t.me/somayukibot?start=animxt_" + filex_id)
-        except Exception as err:
-            await cmd.reply_text(f"Something went wrong!\n\n**Error:** `XXXXXXX`")
-
-    
-app.start()
-print("Powered by @animxt")
-idle()
+if __name__ == '__main__':
+    app.run()
