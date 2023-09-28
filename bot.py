@@ -4,29 +4,8 @@ import datetime
 import secrets
 import requests
 import time
-import pymongo
 import asyncio
-
-# URL shortener API endpoint
-SHORTENER_API = 'https://tnshort.net/api'
-
-# Connect to MongoDB (Make sure you have MongoDB installed and running)
-client = pymongo.MongoClient('mongodb+srv://anime:2004@cluster0.ghzkqob.mongodb.net/?retryWrites=true&w=majority')
-db = client['bot_database']
-animedb = db.credit
-# Function to check if the user has enough credits to use the bot
-def has_enough_credits(user_id):
-    user_data = db.user_data.find_one({'user_id': user_id})
-    if not user_data:
-        return False
-    return user_data.get('credits', 0) > 0
-
-# Function to shorten a URL using the URL shortener API
-def shorten_url(url):
-    api_key = 'fea911843f6e7bec739708f3e562b56184342089'
-    shortener_url = f'{SHORTENER_API}?api={api_key}&url={url}&format=text'
-    response = requests.get(shortener_url)
-    return response.text.strip()
+from pymongo import MongoClient
 
 app = Client(
     'my_bot',
@@ -35,56 +14,30 @@ app = Client(
     bot_token='5786017840:AAEsbeA-1QUdr_0Stp3Bg8V0ov0kxl1A_28'
 )
 
-# Command handler for /start command
-@app.on_message(filters.command('start'))
-async def start_command(client, message):
-    user_id = message.from_user.id
-    usr_cmd = message.text.split("_", 1)[-1]
-    user_data = db.user_data.find_one({'user_id': user_id})
-    cre = animedb.find_one({'token': enc})
-    if usr_cmd == "/start":
-        if not user_data:
-            user_data = {'user_id': user_id, 'credits': 0, 'trial_expiry': None}
-            if user_data['trial_expiry'] is None:
-                user_data['trial_expiry'] = datetime.datetime.now() + datetime.timedelta(minutes=2)
-                message.reply("Welcome! You have a 3-day free trial. Enjoy!")
-            elif user_data['trial_expiry'] > datetime.datetime.now():
-                message.reply("You are still in your trial period. Enjoy!")
-            elif has_enough_credits(user_id):
-                message.reply("You have enough credits to use the bot.")
-                db.user_data.replace_one({'user_id': user_id}, user_data, upsert=True)
+# Connect to MongoDB
+client = MongoClient('mongodb://localhost:27017/')
+db = client['user_tokens']
 
-    elif usr_cmd.split("_")[-1] in cre:
-        user_data['credits'] += 1
-        user_data['last_earned'] = datetime.datetime.now()
-        await message.reply(f"Congratulations! You earned 1 credit. You can now use the bot for 24 hours.")
-        await animedb.delete_one({'token': enc})
+async def is_user_authorized(user_id):
+    # Check if the user_id exists in the user_tokens collection
+    user_token = db.user_tokens.find_one({"user_id": user_id})
+    if user_token:
+        expiration_time = user_token["expiration_time"]
+        return expiration_time > asyncio.get_event_loop().time()
+    return False
 
+@app.on_message(filters.private & (filters.command("start", prefixes="/") | filters.command("help", prefixes="/")))
+async def handle_start_help_command(bot, cmd: Message):
+    user_id = cmd.from_user.id
+    if await is_user_authorized(user_id):
+        await cmd.reply("You are authorized to use the bot.")
     else:
-        message.reply("Failed to earn a credit. Please try again later.")
+        # Generate a new token and set its expiration time to 24 hours from now
+        expiration_time = asyncio.get_event_loop().time() + 60
 
-# Command handler for /earncredit command
-@app.on_message(filters.command('earncredit'))
-async def earn_credit_command(client, message):
-    user_id = message.from_user.id
+        # Store the token in MongoDB
+        db.user_tokens.insert_one({"user_id": user_id, "expiration_time": expiration_time})
 
-    user_data = db.user_data.find_one({'user_id': user_id})
-    if not user_data:
-        user_data = {'user_id': user_id, 'credits': 0, 'trial_expiry': None}
-
-    # Check if the user has already earned a credit today
-    if 'last_earned' in user_data and \
-            user_data['last_earned'] + datetime.timedelta(minutes=2) > datetime.datetime.now():
-        await message.reply("You have already earned a credit today. Try again tomorrow!")
-
-    else:
-        # Try to shorten a sample URL (replace with your own)
-        enc = secrets.token_hex(nbytes=16)
-        user_data = db.credit.find_one({'token': enc})
-        credit = await animedb.insert_one({'token': enc})
-        sample_url = f"https://t.me/anime_data_bot?start=animxt_{enc}"
-        shortened_url = shorten_url(sample_url)
-        await message.reply(shortened_url)
-
+        await cmd.reply("You have been authorized for 24 hours. Please use this link to start: https://t.me/anime_data_bot?start=" + str(user_id))
 if __name__ == '__main__':
     app.run()
