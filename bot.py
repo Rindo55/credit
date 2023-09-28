@@ -1,4 +1,5 @@
-import pyrogram
+from pyrogram import Client, idle, filters, enums
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InputMediaPhoto
 import datetime
 import secrets
 import requests
@@ -76,7 +77,7 @@ def earn_credit_command(client, message):
         sample_url = f"https://t.me/anime_data_bot?start={enc}"
         shortened_url = shorten_url(sample_url)
         message.reply("shortened_url")
-        if enc in update.text:
+        if enc in message.text:
             user_data['credits'] += 1
             user_data['last_earned'] = datetime.datetime.now()
             message.reply(f"Congratulations! You earned 1 credit. You can now use the bot for 24 hours.")
