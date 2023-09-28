@@ -42,6 +42,7 @@ def start_command(client, message):
     user_id = message.from_user.id
     usr_cmd = message.text.split("_", 1)[-1]
     user_data = db.user_data.find_one({'user_id': user_id})
+    cre = animedb.find_one({'token': enc})
     if usr_cmd == "/start":
         if not user_data:
             user_data = {'user_id': user_id, 'credits': 0, 'trial_expiry': None}
@@ -53,7 +54,7 @@ def start_command(client, message):
             elif has_enough_credits(user_id):
                 message.reply("You have enough credits to use the bot.")
                 db.user_data.replace_one({'user_id': user_id}, user_data, upsert=True)
-    cre = animedb.find_one({'token': enc})
+
     elif usr_cmd.split("_")[-1] in cre:
         user_data['credits'] += 1
         user_data['last_earned'] = datetime.datetime.now()
