@@ -5,8 +5,7 @@ import secrets
 import requests
 import time
 import pymongo
-
-
+import asyncio
 
 # URL shortener API endpoint
 SHORTENER_API = 'https://tnshort.net/api'
@@ -38,7 +37,7 @@ app = Client(
 
 # Command handler for /start command
 @app.on_message(filters.command('start'))
-def start_command(client, message):
+async def start_command(client, message):
     user_id = message.from_user.id
     usr_cmd = message.text.split("_", 1)[-1]
     user_data = db.user_data.find_one({'user_id': user_id})
