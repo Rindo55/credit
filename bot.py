@@ -18,10 +18,10 @@ app = Client(
 client = MongoClient('mongodb+srv://anime:2004@cluster0.ghzkqob.mongodb.net/?retryWrites=true&w=majority')
 db = client['user_tokens']
 
-async def is_user_authorized(user_id):
+async def is_user_authorized(user_id, usr_txt):
     # Check if the user_id exists in the user_tokens collection
-    user_token = db.user_tokens.find_one({"user_id": user_id})
-    if user_token:
+    user_token = db.user_tokens.find_one({"token": token})
+    if usr_txt in user_token:
         expiration_time = user_token["expiration_time"]
         return expiration_time > asyncio.get_event_loop().time()
     return False
@@ -37,7 +37,9 @@ async def delete_expired_tokens():
 @app.on_message(filters.private & (filters.command("start", prefixes="/") | filters.command("help", prefixes="/")))
 async def handle_start_help_command(bot, cmd: Message):
     user_id = cmd.from_user.id
-    if await is_user_authorized(user_id):
+    usr_cmd = cmd.text.split("_", 1)[-1]
+    usr_txt = usr_cmd.split("_")[-1]
+    if await is_user_authorized(user_id, usr_txt):
         await cmd.reply("You are authorized to use the bot.")
         
     else:
